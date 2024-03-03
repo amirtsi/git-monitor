@@ -6,7 +6,7 @@ services:
       context: ./Backend/
       dockerfile: ./Dockerfile
     ports:
-      - "8080:8000"
+      - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
