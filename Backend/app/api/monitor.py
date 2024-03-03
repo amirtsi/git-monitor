@@ -3,12 +3,13 @@ import uuid  # Import UUID module to generate unique filenames
 from fastapi import APIRouter, Request, HTTPException
 from json.decoder import JSONDecodeError
 from app.api.db import save_data, get_all_objects
-from selenium import webdriver
 from fastapi.responses import FileResponse
 import logging
 from dotenv import load_dotenv
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.common.exceptions import WebDriverException
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+
 
 monitor_router = APIRouter()
 
@@ -50,14 +51,19 @@ async def take_screenshot(url: str) -> str:
     screenshot_filename = str(uuid.uuid4()) + ".png"
     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
 
-    # Configure WebDriver to use the Selenium Hub service
-    selenium_hub_url = "http://selenium-hub:4444/wd/hub"  # Docker Compose service name as URL
-    capabilities = DesiredCapabilities.CHROME
-    capabilities['goog:chromeOptions'] = {
-        'args': ['--headless', '--no-sandbox', '--disable-dev-shm-usage']
-    }
+    # Configure WebDriver to use Selenium 4 compatible syntax
+    options = Options()
+    options.headless = True  # Enable headless mode
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Remote(command_executor=selenium_hub_url, desired_capabilities=capabilities)
+    # Specify the Selenium Hub service URL
+    selenium_hub_url = "http://selenium-hub:4444/wd/hub"
+    
+    # Use the `Service` object with the Remote WebDriver
+    service = Service(selenium_hub_url)
+    driver = webdriver.Remote(service=service, options=options)
+
     try:
         driver.get(url)
         driver.save_screenshot(screenshot_path)
@@ -66,6 +72,8 @@ async def take_screenshot(url: str) -> str:
         raise RuntimeError(f"Error taking screenshot: {e}")
     finally:
         driver.quit()
+    
+    return screenshot_path
 
 
 @monitor_router.get("/pull-requests")
