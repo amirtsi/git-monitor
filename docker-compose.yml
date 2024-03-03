@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  fastapi-app:
+    build:
+      context: ./Backend/
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    env_file:
+      - Backend/.env
+    networks:
+      - app-network
+
+  react-app:
+    build:
+      context: ./my-monitor-app/
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./my-monitor-app:/app
+      - /app/node_modules
+    depends_on:
+      - fastapi-app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
