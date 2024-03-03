@@ -6,13 +6,11 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN npm install --legacy-peer-deps
-RUN npm install react-tooltip
-RUN npm install tailwind-scrollbar-hide
+RUN npm install 
 
 RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules
 
-RUN chown -R node /app/node_modules
+
 
 USER node
 
