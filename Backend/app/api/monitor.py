@@ -10,6 +10,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.remote.remote_connection import RemoteConnection
 
 
 monitor_router = APIRouter()
@@ -47,7 +48,18 @@ async def github_webhook(request: Request):
 
 # Ensure similar replacements for logging in other parts of your code
 
+# Custom function to create a RemoteConnection with increased timeout values
+def create_remote_connection(remote_server_addr, keep_alive=True):
+    # Increase the timeout values here (in seconds)
+    connection_timeout = 120  # Connection timeout
+    request_timeout = 120  # Read/request timeout
+    
+    # Initialize a RemoteConnection with increased timeouts
+    return RemoteConnection(remote_server_addr, keep_alive=keep_alive, resolve_ip=False, conn_timeout=connection_timeout, read_timeout=request_timeout)
+
 async def take_screenshot(url: str) -> str:
+    SCREENSHOTS_DIR = os.getenv('SCREENSHOTS_DIR')
+    
     if SCREENSHOTS_DIR is None:
         logging.error("SCREENSHOTS_DIR environment variable is not set.")
         raise EnvironmentError("SCREENSHOTS_DIR environment variable is not set.")
@@ -60,27 +72,28 @@ async def take_screenshot(url: str) -> str:
     # Configure WebDriver options
     options = Options()
     options.headless = True  # Enable headless mode
-    options.enable_downloads = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
     # Specify the Selenium Hub service URL
     selenium_hub_url = "http://selenium-hub:4444/wd/hub"
 
-    # Correctly use the command_executor and options
-    driver = webdriver.Remote(command_executor=selenium_hub_url, options=options)
+    # Use the custom function to create a WebDriver instance with increased timeouts
+    driver = webdriver.Remote(
+        command_executor=create_remote_connection(selenium_hub_url),
+        options=options
+    )
 
     try:
         driver.get(url)
         driver.save_screenshot(screenshot_path)
-    except WebDriverException as e:
+    except Exception as e:
         logging.error(f"Error taking screenshot: {e}")
-        raise RuntimeError(f"Error taking screenshot: {e}")
+        raise
     finally:
         driver.quit()
     
     return screenshot_path
-
 
 @monitor_router.get("/pull-requests")
 async def get_pull_requests():
