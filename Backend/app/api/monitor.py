@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.remote.remote_connection import RemoteConnection
+from playwright.async_api import async_playwright
 
 
 monitor_router = APIRouter()
@@ -46,50 +47,24 @@ async def github_webhook(request: Request):
 
     return {"message": "Webhook received"}
 
-def create_remote_connection(remote_server_addr, keep_alive=True):
-    # Increase the timeout values here (in seconds)
-    connection_timeout = 120  # Connection timeout
-    request_timeout = 120  # Read/request timeout
-    
-    # Initialize a RemoteConnection with increased timeouts without the resolve_ip argument
-    return RemoteConnection(remote_server_addr, keep_alive=keep_alive, conn_timeout=connection_timeout, read_timeout=request_timeout)
-
 async def take_screenshot(url: str) -> str:
     SCREENSHOTS_DIR = os.getenv('SCREENSHOTS_DIR')
-    
+
     if SCREENSHOTS_DIR is None:
-        logging.error("SCREENSHOTS_DIR environment variable is not set.")
         raise EnvironmentError("SCREENSHOTS_DIR environment variable is not set.")
-    
+
     os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-    
+
     screenshot_filename = str(uuid.uuid4()) + ".png"
     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
 
-    # Configure WebDriver options
-    options = Options()
-    options.headless = True  # Enable headless mode
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        await page.goto(url)
+        await page.screenshot(path=screenshot_path)
+        await browser.close()
 
-    # Specify the Selenium Hub service URL
-    selenium_hub_url = "http://selenium-hub:4444/wd/hub"
-
-    # Use the adjusted function to create a WebDriver instance with increased timeouts
-    driver = webdriver.Remote(
-        command_executor=create_remote_connection(selenium_hub_url),
-        options=options
-    )
-
-    try:
-        driver.get(url)
-        driver.save_screenshot(screenshot_path)
-    except Exception as e:
-        logging.error(f"Error taking screenshot: {e}")
-        raise
-    finally:
-        driver.quit()
-    
     return screenshot_path
 
 @monitor_router.get("/pull-requests")

@@ -18,7 +18,7 @@ RUN apt-get update \
 COPY requirements.txt /app/
 COPY /screenshots /app/
 RUN pip install --no-cache-dir -r requirements.txt
-
+RUN playwright install
 # Copy the current directory contents into the container at /app
 COPY . /app/
 
