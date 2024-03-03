@@ -4,7 +4,7 @@ services:
   fastapi-app:
     build:
       context: ./Backend/
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     ports:
       - "8080:8000"
     environment:
@@ -18,7 +18,7 @@ services:
   react-app:
     build:
       context: ./my-monitor-app/
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     ports:
       - "3000:3000"
     environment:
