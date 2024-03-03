@@ -9,9 +9,13 @@ from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import WebDriverException
 
 
 monitor_router = APIRouter()
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv()
 CHROME_DRIVER_PATH = os.getenv('CHROME_DRIVER_PATH')
@@ -26,20 +30,22 @@ async def github_webhook(request: Request):
 
     action = payload.get("action")
     pull_request = payload.get("pull_request", {})
-    print(f"Action: {action}, PR: {pull_request.get('html_url')}")
+    logging.info(f"Action: {action}, PR: {pull_request.get('html_url')}")
 
     try:
         # Take a screenshot of the pull request page
         screenshot_path = await take_screenshot(pull_request.get("html_url"))
-        print(f"Screenshot saved: {screenshot_path}")
+        logging.info(f"Screenshot saved: {screenshot_path}")
 
         # Save pull request details and screenshot path to the database
         document_id = await save_data(pull_request, screenshot_path)
-        print(f"Pull request details and screenshot path saved. Document ID: {document_id}")
+        logging.info(f"Pull request details and screenshot path saved. Document ID: {document_id}")
     except Exception as e:
-        print(f"Error saving pull request details or taking screenshot: {e}")
+        logging.error(f"Error saving pull request details or taking screenshot: {e}")
 
     return {"message": "Webhook received"}
+
+# Ensure similar replacements for logging in other parts of your code
 
 async def take_screenshot(url: str) -> str:
     if SCREENSHOTS_DIR is None:
@@ -51,18 +57,18 @@ async def take_screenshot(url: str) -> str:
     screenshot_filename = str(uuid.uuid4()) + ".png"
     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
 
-    # Configure WebDriver to use Selenium 4 compatible syntax
+    # Configure WebDriver options
     options = Options()
     options.headless = True  # Enable headless mode
+    options.enable_downloads = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
     # Specify the Selenium Hub service URL
     selenium_hub_url = "http://selenium-hub:4444/wd/hub"
-    
-    # Use the `Service` object with the Remote WebDriver
-    service = Service(selenium_hub_url)
-    driver = webdriver.Remote(service=service, options=options)
+
+    # Correctly use the command_executor and options
+    driver = webdriver.Remote(command_executor=selenium_hub_url, options=options)
 
     try:
         driver.get(url)
