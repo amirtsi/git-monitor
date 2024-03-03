@@ -11,7 +11,7 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update \
+RUN apt-get update \ 
   && apt-get clean
 
 # Install Python dependencies
@@ -19,6 +19,7 @@ COPY requirements.txt /app/
 COPY /screenshots /app/
 RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install
+RUN playwright install-deps
 # Copy the current directory contents into the container at /app
 COPY . /app/
 
