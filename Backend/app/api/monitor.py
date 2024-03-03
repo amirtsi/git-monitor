@@ -4,10 +4,11 @@ from fastapi import APIRouter, Request, HTTPException
 from json.decoder import JSONDecodeError
 from app.api.db import save_data, get_all_objects
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
 from fastapi.responses import FileResponse
 import logging
 from dotenv import load_dotenv
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.common.exceptions import WebDriverException
 
 monitor_router = APIRouter()
 
@@ -40,22 +41,28 @@ async def github_webhook(request: Request):
     return {"message": "Webhook received"}
 
 async def take_screenshot(url: str) -> str:
-    screenshots_dir = SCREENSHOTS_DIR  # Use the environment variable
-    os.makedirs(screenshots_dir, exist_ok=True)
+    if SCREENSHOTS_DIR is None:
+        logging.error("SCREENSHOTS_DIR environment variable is not set.")
+        raise EnvironmentError("SCREENSHOTS_DIR environment variable is not set.")
+    
+    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
     
     screenshot_filename = str(uuid.uuid4()) + ".png"
-    screenshot_path = os.path.join(screenshots_dir, screenshot_filename)
+    screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
 
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.binary_location = CHROME_DRIVER_PATH  # Use the environment variable
-    
-    driver = webdriver.Chrome(options=options)
+    # Configure WebDriver to use the Selenium Hub service
+    selenium_hub_url = "http://selenium-hub:4444/wd/hub"  # Docker Compose service name as URL
+    capabilities = DesiredCapabilities.CHROME
+    capabilities['goog:chromeOptions'] = {
+        'args': ['--headless', '--no-sandbox', '--disable-dev-shm-usage']
+    }
+
+    driver = webdriver.Remote(command_executor=selenium_hub_url, desired_capabilities=capabilities)
     try:
         driver.get(url)
         driver.save_screenshot(screenshot_path)
-        return screenshot_path
     except WebDriverException as e:
+        logging.error(f"Error taking screenshot: {e}")
         raise RuntimeError(f"Error taking screenshot: {e}")
     finally:
         driver.quit()
