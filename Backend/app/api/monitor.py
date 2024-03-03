@@ -46,16 +46,13 @@ async def github_webhook(request: Request):
 
     return {"message": "Webhook received"}
 
-# Ensure similar replacements for logging in other parts of your code
-
-# Custom function to create a RemoteConnection with increased timeout values
 def create_remote_connection(remote_server_addr, keep_alive=True):
     # Increase the timeout values here (in seconds)
     connection_timeout = 120  # Connection timeout
     request_timeout = 120  # Read/request timeout
     
-    # Initialize a RemoteConnection with increased timeouts
-    return RemoteConnection(remote_server_addr, keep_alive=keep_alive, resolve_ip=False, conn_timeout=connection_timeout, read_timeout=request_timeout)
+    # Initialize a RemoteConnection with increased timeouts without the resolve_ip argument
+    return RemoteConnection(remote_server_addr, keep_alive=keep_alive, conn_timeout=connection_timeout, read_timeout=request_timeout)
 
 async def take_screenshot(url: str) -> str:
     SCREENSHOTS_DIR = os.getenv('SCREENSHOTS_DIR')
@@ -78,7 +75,7 @@ async def take_screenshot(url: str) -> str:
     # Specify the Selenium Hub service URL
     selenium_hub_url = "http://selenium-hub:4444/wd/hub"
 
-    # Use the custom function to create a WebDriver instance with increased timeouts
+    # Use the adjusted function to create a WebDriver instance with increased timeouts
     driver = webdriver.Remote(
         command_executor=create_remote_connection(selenium_hub_url),
         options=options
