@@ -7,9 +7,7 @@ COPY . .
 
 # Install dependencies
 RUN npm install 
-
 RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules
-RUN npm install -g npm@10.5.0
 USER node
 
 # Expose port 3000 to the Docker host, so we can access it
