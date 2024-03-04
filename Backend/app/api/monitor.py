@@ -27,16 +27,19 @@ SCREENSHOTS_DIR = os.getenv('SCREENSHOTS_DIR')
 async def github_webhook(request: Request):
     try:
         payload = await request.json()
+        logging.info(f"Received payload: {payload}")  # Log the received payload
     except JSONDecodeError as e:
         raise HTTPException(status_code=400, detail="Invalid JSON payload") from e
 
     action = payload.get("action")
     pull_request = payload.get("pull_request", {})
     logging.info(f"Action: {action}, PR: {pull_request.get('html_url')}")
+    url = pull_request.get("html_url")
+    logging.info(f"URL to screenshot: {url}")
 
     try:
         # Take a screenshot of the pull request page
-        screenshot_path = await take_screenshot(pull_request.get("html_url"))
+        screenshot_path = await take_screenshot(url)
         logging.info(f"Screenshot saved: {screenshot_path}")
 
         # Save pull request details and screenshot path to the database
@@ -46,6 +49,7 @@ async def github_webhook(request: Request):
         logging.error(f"Error saving pull request details or taking screenshot: {e}")
 
     return {"message": "Webhook received"}
+
 
 async def take_screenshot(url: str) -> str:
     # Define the directory to save screenshots
@@ -59,6 +63,8 @@ async def take_screenshot(url: str) -> str:
     # Generate a unique filename for the screenshot
     screenshot_filename = str(uuid.uuid4()) + ".png"
     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
+    
+
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
