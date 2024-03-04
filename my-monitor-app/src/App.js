@@ -17,7 +17,7 @@ const PullRequestList = () => {
     const fetchPullRequests = async () => {
       setLoading(true); // Start loading
       try {
-        const response = await fetch('https://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/pull-requests');
+        const response = await fetch('http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/pull-requests');
         if (!response.ok) {
           throw new Error('Failed to fetch pull requests');
         }
@@ -36,7 +36,7 @@ const PullRequestList = () => {
   // Function to handle image download
   const handleImageDownload = async (screenshotPath) => {
     // Adjusted Base URL to include the complete path to the FastAPI endpoint serving screenshots
-    const baseUrl = 'https://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/'; 
+    const baseUrl = 'http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/'; 
     const imageUrl = `${baseUrl}${screenshotPath}`; // Construct the full URL
 
     try {
