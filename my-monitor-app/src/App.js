@@ -6,16 +6,17 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import CircularProgress from '@mui/material/CircularProgress'; // Import CircularProgress
-import { Typography, Box } from '@mui/material'; // Import Typography for text and Box for layout
+import CircularProgress from '@mui/material/CircularProgress';
+import { Typography, Box, Button } from '@mui/material';
 
 const PullRequestList = () => {
   const [pullRequests, setPullRequests] = useState([]);
-  const [loading, setLoading] = useState(false); // State to track loading
+  const [loading, setLoading] = useState(false);
+  const [sortByDateAsc, setSortByDateAsc] = useState(true);
 
   useEffect(() => {
     const fetchPullRequests = async () => {
-      setLoading(true); // Start loading
+      setLoading(true);
       try {
         const response = await fetch('http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/pull-requests');
         if (!response.ok) {
@@ -26,94 +27,108 @@ const PullRequestList = () => {
       } catch (error) {
         console.error('Error fetching pull requests:', error);
       } finally {
-        setLoading(false); // End loading
+        setLoading(false);
       }
     };
 
     fetchPullRequests();
   }, []);
 
-  // Function to handle image download
+  const handleSortByDate = () => {
+    const sortedPullRequests = [...pullRequests];
+    sortedPullRequests.sort((a, b) => {
+      if (sortByDateAsc) {
+        return new Date(a.date) - new Date(b.date);
+      } else {
+        return new Date(b.date) - new Date(a.date);
+      }
+    });
+    setPullRequests(sortedPullRequests);
+    setSortByDateAsc(!sortByDateAsc);
+  };
+
   const handleImageDownload = async (screenshotPath) => {
-    // Adjusted Base URL to include the complete path to the FastAPI endpoint serving screenshots
-    const baseUrl = 'http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/'; 
-    const imageUrl = `${baseUrl}${screenshotPath}`; // Construct the full URL
+    const baseUrl = 'http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/';
+    const imageUrl = `${baseUrl}${screenshotPath}`;
 
     try {
       const response = await fetch(imageUrl);
-      console.log('Attempting to download image from:', imageUrl);
-      console.log('Response:', screenshotPath);
       if (!response.ok) {
         throw new Error('Failed to download image');
       }
 
       const arrayBuffer = await response.arrayBuffer();
       const blob = new Blob([arrayBuffer], { type: response.headers.get('Content-Type') });
-
       const blobUrl = URL.createObjectURL(blob);
 
-      // Creating a temporary anchor element for downloading the file
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = screenshotPath.split('/').pop(); // Extract the filename from the path for the download attribute
+      link.download = screenshotPath.split('/').pop();
 
-      // Simulating a click event to trigger the download
-      document.body.appendChild(link); // Append to body to ensure it's in the document
+      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link); // Clean up by removing the link after triggering the download
+      document.body.removeChild(link);
 
-      // Clean up by revoking the blob URL after a short delay to ensure the download has initiated
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (error) {
       console.error('Error downloading image:', error);
     }
-};
+  };
 
-
-return (
-  <div>
-    <Typography variant="h4" gutterBottom>
-      GitHub Pull Requests Monitoring
-    </Typography>
-    {loading ? (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-        <CircularProgress />
+  return (
+    <div>
+      <Typography variant="h4" gutterBottom>
+        GitHub Pull Requests Monitoring
+      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
+        <Typography variant="body1" gutterBottom>
+          Sort by Date:
+        </Typography>
+        <Button variant="contained" onClick={handleSortByDate}>
+          {sortByDateAsc ? 'Ascending' : 'Descending'}
+        </Button>
       </Box>
-    ) : (
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Title</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>Download Image</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {pullRequests.map((pr) => (
-              <TableRow key={pr.id} hover>
-                <TableCell>{pr.id}</TableCell>
-                <TableCell>{pr.title}</TableCell>
-                <TableCell>{pr.user ? pr.user.login : 'No user information'}</TableCell>
-                <TableCell>
-                  {pr.screenshot_path && (
-                    <button
-                      style={{ textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', color: 'blue' }}
-                      onClick={() => handleImageDownload(pr.screenshot_path)}
-                    >
-                      Download
-                    </button>
-                  )}
-                </TableCell>
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table sx={{ minWidth: 650 }} aria-label="simple table">
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Title</TableCell>
+                <TableCell>User</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Download Image</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    )}
-  </div>
-);
+            </TableHead>
+            <TableBody>
+              {pullRequests.map((pr) => (
+                <TableRow key={pr.id} hover>
+                  <TableCell>{pr.id}</TableCell>
+                  <TableCell>{pr.title}</TableCell>
+                  <TableCell>{pr.user ? pr.user.login : 'No user information'}</TableCell>
+                  <TableCell>{pr.date}</TableCell>
+                  <TableCell>
+                    {pr.screenshot_path && (
+                      <button
+                        style={{ textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', color: 'blue' }}
+                        onClick={() => handleImageDownload(pr.screenshot_path)}
+                      >
+                        Download
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </div>
+  );
 };
 
 export default PullRequestList;
