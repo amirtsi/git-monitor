@@ -6,11 +6,11 @@ from app.api.db import save_data, get_all_objects
 from fastapi.responses import FileResponse
 import logging
 from dotenv import load_dotenv
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.remote.remote_connection import RemoteConnection
+# from selenium import webdriver
+# from selenium.webdriver.chrome.service import Service
+# from selenium.webdriver.chrome.options import Options
+# from selenium.common.exceptions import WebDriverException
+# from selenium.webdriver.remote.remote_connection import RemoteConnection
 from playwright.async_api import async_playwright
 
 
@@ -48,22 +48,32 @@ async def github_webhook(request: Request):
     return {"message": "Webhook received"}
 
 async def take_screenshot(url: str) -> str:
+    # Define the directory to save screenshots
     SCREENSHOTS_DIR = os.getenv('SCREENSHOTS_DIR')
-
     if SCREENSHOTS_DIR is None:
         raise EnvironmentError("SCREENSHOTS_DIR environment variable is not set.")
 
+    # Create the directory if it doesn't exist
     os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
+    # Generate a unique filename for the screenshot
     screenshot_filename = str(uuid.uuid4()) + ".png"
     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_filename)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        await page.goto(url)
-        await page.screenshot(path=screenshot_path)
-        await browser.close()
+        try:
+            # Navigate to the specified URL
+            await page.goto(url)
+            # Take a screenshot of the page
+            await page.screenshot(path=screenshot_path)
+        except Exception as e:
+            # Handle any errors
+            raise RuntimeError(f"Error taking screenshot: {e}")
+        finally:
+            # Close the browser
+            await browser.close()
 
     return screenshot_path
 
