@@ -4,6 +4,7 @@ from pymongo.server_api import ServerApi
 from pymongo.errors import OperationFailure
 from bson import ObjectId
 import logging
+from datetime import datetime
 
 # Configure basic logging settings
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -49,7 +50,11 @@ async def save_data(data: dict, screenshot_path: str):
             raise ValueError("COLLECTION_NAME environment variable is not set")
         
         collection = db.client[os.getenv("DB_NAME")][collection_name]
+        
+        # Add the current date to the data dictionary
+        data['date'] = datetime.utcnow()
         data['screenshot_path'] = screenshot_path
+        
         result = collection.insert_one(data)
         logging.info(f"Data saved to {collection_name}. Document ID: {result.inserted_id}")
         return result.inserted_id
@@ -81,6 +86,7 @@ async def get_all_objects():
                 "title": obj.get("html_url", ""),
                 "user": obj.get("user", ""),
                 "screenshot_path": obj.get("screenshot_path", ""),
+                "date": obj.get("date", datetime.utcnow())  # Default to current UTC time if date is not present
             }
             objects_list.append(pr)
         return objects_list
