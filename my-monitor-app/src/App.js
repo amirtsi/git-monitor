@@ -9,6 +9,34 @@ import Paper from '@mui/material/Paper';
 import CircularProgress from '@mui/material/CircularProgress';
 import { Typography, Box } from '@mui/material';
 
+const handleImageDownload = async (screenshotPath) => {
+  const baseUrl = 'http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/';
+  const imageUrl = `${baseUrl}${screenshotPath}`;
+
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error('Failed to download image');
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: response.headers.get('Content-Type') });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = screenshotPath.split('/').pop();
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+  } catch (error) {
+    console.error('Error downloading image:', error);
+  }
+};
+
 const PullRequestList = () => {
   const [pullRequests, setPullRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,34 +75,6 @@ const PullRequestList = () => {
     setSortByDateAsc(!sortByDateAsc);
   };
 
-  const handleImageDownload = async (screenshotPath) => {
-    const baseUrl = 'http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/';
-    const imageUrl = `${baseUrl}${screenshotPath}`;
-
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error('Failed to download image');
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: response.headers.get('Content-Type') });
-      const blobUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = screenshotPath.split('/').pop();
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-    } catch (error) {
-      console.error('Error downloading image:', error);
-    }
-  };
-
   return (
     <div>
       <Typography variant="h4" gutterBottom>
@@ -94,7 +94,7 @@ const PullRequestList = () => {
                 <TableCell>User</TableCell>
                 <TableCell 
                   style={{ cursor: 'pointer' }} 
-                  onClick={handleSortByDate}
+                  onClick={() => handleSortByDate()}
                 >
                   Date
                 </TableCell>
