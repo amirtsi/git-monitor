@@ -7,7 +7,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Typography, Box, Button } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 
 const PullRequestList = () => {
   const [pullRequests, setPullRequests] = useState([]);
@@ -47,47 +47,11 @@ const PullRequestList = () => {
     setSortByDateAsc(!sortByDateAsc);
   };
 
-  const handleImageDownload = async (screenshotPath) => {
-    const baseUrl = 'http://ec2-13-60-5-251.eu-north-1.compute.amazonaws.com:8000/api/v1/monitor_router/';
-    const imageUrl = `${baseUrl}${screenshotPath}`;
-
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error('Failed to download image');
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: response.headers.get('Content-Type') });
-      const blobUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = screenshotPath.split('/').pop();
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-    } catch (error) {
-      console.error('Error downloading image:', error);
-    }
-  };
-
   return (
     <div>
       <Typography variant="h4" gutterBottom>
         GitHub Pull Requests Monitoring
       </Typography>
-      <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
-        <Typography variant="body1" gutterBottom>
-          Sort by Date:
-        </Typography>
-        <Button variant="contained" onClick={handleSortByDate}>
-          {sortByDateAsc ? 'Ascending' : 'Descending'}
-        </Button>
-      </Box>
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
           <CircularProgress />
@@ -100,7 +64,12 @@ const PullRequestList = () => {
                 <TableCell>ID</TableCell>
                 <TableCell>Title</TableCell>
                 <TableCell>User</TableCell>
-                <TableCell>Date</TableCell>
+                <TableCell 
+                  style={{ cursor: 'pointer' }} 
+                  onClick={handleSortByDate}
+                >
+                  Date
+                </TableCell>
                 <TableCell>Download Image</TableCell>
               </TableRow>
             </TableHead>
